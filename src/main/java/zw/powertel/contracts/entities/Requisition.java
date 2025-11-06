@@ -6,7 +6,9 @@ import lombok.*;
 import zw.powertel.contracts.enums.*;
 import zw.powertel.contracts.handlers.BaseEntity;
 
+import java.util.ArrayList;
 import java.util.Date;
+import java.util.List;
 
 
 @Entity
@@ -90,5 +92,16 @@ public class Requisition extends BaseEntity {
     @OneToOne(mappedBy = "requisition", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
     @JsonIgnore
     private ContractDraft contractDraft;
+
+
+    @OneToMany(mappedBy = "requisition", cascade = CascadeType.ALL, orphanRemoval = true)
+    @JsonIgnore
+    private List<Attachment> attachments = new ArrayList<>();
+
+    public void addAttachment(Attachment attachment) {
+        attachment.setRequisition(this);
+        this.attachments.add(attachment);
+    }
+
 
 }

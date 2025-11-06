@@ -1,19 +1,31 @@
 package zw.powertel.contracts.controller;
 
 import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.media.Content;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.multipart.MultipartFile;
 import zw.powertel.contracts.enums.RequisitionStatus;
 import zw.powertel.contracts.payload.request.ApprovalRequest;
 import zw.powertel.contracts.payload.request.RequisitionRequest;
 import zw.powertel.contracts.payload.response.ApprovalResponse;
 import zw.powertel.contracts.payload.response.RequisitionResponse;
 import zw.powertel.contracts.service.RequisitionService;
+import io.swagger.v3.oas.annotations.media.Schema;
+import io.swagger.v3.oas.annotations.parameters.RequestBody;
+
+;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.RestController;
 
 import java.util.List;
 import java.util.Map;
@@ -166,6 +178,20 @@ public class RequisitionController {
         return ResponseEntity.ok(count);
     }
 
+
+    @PostMapping(
+            value = "/{id}/upload",
+            consumes = MediaType.MULTIPART_FORM_DATA_VALUE
+    )
+    @ResponseStatus(HttpStatus.OK)
+    @PreAuthorize("hasAuthority('READ_PRIVILEGE') and hasAnyRole('USER','ADMIN', 'PALEGAL', 'TECHNICALDIRECTOR', 'FINANCEDIRECTOR', 'COMMERCIALDIRECTOR', 'BUSINESSMANAGER', 'PROCUREMENTMANAGER')")
+    public ResponseEntity<String> uploadFiles(
+            @PathVariable Long id,
+            @RequestPart("files") MultipartFile[] files
+    ) {
+        String uploaded = requisitionService.uploadFiles(id, files);
+        return ResponseEntity.ok("✅ Uploaded: " + uploaded);
+    }
 
 
 }

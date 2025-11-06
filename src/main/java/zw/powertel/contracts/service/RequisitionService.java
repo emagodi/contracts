@@ -1,6 +1,7 @@
 package zw.powertel.contracts.service;
 
 
+import org.springframework.web.multipart.MultipartFile;
 import zw.powertel.contracts.entities.Approval;
 import zw.powertel.contracts.enums.RequisitionStatus;
 import zw.powertel.contracts.payload.request.ApprovalRequest;
@@ -38,4 +39,6 @@ public interface RequisitionService {
     public Map<String, Long> getRequisitionSummaryByStatus();
 
     Long countRequisitionsByStatus(RequisitionStatus status);
+
+    public String uploadFiles(Long requisitionId, MultipartFile[] files);
 }

@@ -7,6 +7,7 @@ import org.springframework.beans.BeanWrapperImpl;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import zw.powertel.contracts.entities.Approval;
+import zw.powertel.contracts.entities.Attachment;
 import zw.powertel.contracts.entities.Requisition;
 import zw.powertel.contracts.entities.User;
 import zw.powertel.contracts.enums.IsRenewable;
@@ -33,10 +34,28 @@ import java.time.LocalDate;
 import java.time.ZoneId;
 import java.util.Date;
 
+import jakarta.annotation.PostConstruct;
+import jakarta.persistence.EntityNotFoundException;
+import lombok.RequiredArgsConstructor;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.stereotype.Service;
+import org.springframework.web.multipart.MultipartFile;
+import java.io.File;
+import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
+
+
+
+
 @Service
 @RequiredArgsConstructor
 @Transactional
 public class RequisitionServiceImpl implements RequisitionService {
+
+    @Value("${file.upload-dir}")
+    private String uploadDir;
 
     private final RequisitionRepository requisitionRepository;
     private final ApprovalRepository approvalRepository;
@@ -516,5 +535,45 @@ public class RequisitionServiceImpl implements RequisitionService {
 
         return summary;
     }
+
+
+
+    @PostConstruct
+    public void init() {
+        // Create the upload directory if it does not exist
+        File directory = new File(uploadDir);
+        if (!directory.exists()) {
+            directory.mkdirs();
+        }
+    }
+
+    @Override
+    public String uploadFiles(Long requisitionId, MultipartFile[] files) {
+        Requisition requisition = requisitionRepository.findById(requisitionId)
+                .orElseThrow(() -> new NotFoundException("Requisition not found with id: " + requisitionId));
+
+        StringBuilder uploadedFiles = new StringBuilder();
+
+        for (MultipartFile file : files) {
+            try {
+                Path path = Paths.get(uploadDir, file.getOriginalFilename());
+                Files.copy(file.getInputStream(), path);
+
+                Attachment attachment = new Attachment();
+                attachment.setFileName(file.getOriginalFilename());
+                attachment.setFilePath(path.toString());
+                attachment.setFileType(file.getContentType());
+                requisition.addAttachment(attachment);
+
+                uploadedFiles.append(file.getOriginalFilename()).append(", ");
+            } catch (IOException e) {
+                throw new RuntimeException("Failed to upload file: " + file.getOriginalFilename(), e);
+            }
+        }
+
+        requisitionRepository.save(requisition);
+        return uploadedFiles.toString();
+    }
+
 
 }
