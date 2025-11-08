@@ -19,7 +19,7 @@ public class RequisitionResponse {
     private String requisitionTo;
     private String requisitionFrom;
 
-    private LocalDateTime date;
+    private LocalDate date;
 
     private String description;
     private String vendorRegistedName;

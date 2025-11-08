@@ -47,7 +47,7 @@ public class DataLoader implements CommandLineRunner {
         createSuperAdmin();
 
         // Load 200 requisitions with approvals
-          loadRequisitions();
+        //  loadRequisitions();
 
     }
 
@@ -91,7 +91,7 @@ public class DataLoader implements CommandLineRunner {
             return Requisition.builder()
                     .requisitionTo(faker.company().name())
                     .requisitionFrom(faker.company().name())
-                    .date(currentDate)
+                    .date(LocalDate.from(currentDate))
                     .description(faker.lorem().sentence())
                     .vendorRegistedName(faker.company().name())
                     .vendorEmail(faker.internet().emailAddress())

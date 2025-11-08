@@ -17,7 +17,7 @@ public class RequisitionRequest {
     private String requisitionFrom;
 
     // Requisition date
-    private LocalDateTime date;
+    private LocalDate date;
 
     private String description;
     private String vendorRegistedName;
