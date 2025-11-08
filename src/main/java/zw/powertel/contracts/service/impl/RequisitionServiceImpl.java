@@ -1,11 +1,17 @@
 package zw.powertel.contracts.service.impl;
 
+import jakarta.annotation.PostConstruct;
 import jakarta.persistence.EntityNotFoundException;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.BeanWrapper;
 import org.springframework.beans.BeanWrapperImpl;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.multipart.MultipartFile;
 import zw.powertel.contracts.entities.Approval;
 import zw.powertel.contracts.entities.Attachment;
 import zw.powertel.contracts.entities.Requisition;
@@ -14,44 +20,28 @@ import zw.powertel.contracts.enums.IsRenewable;
 import zw.powertel.contracts.enums.PaymentStatus;
 import zw.powertel.contracts.enums.RequisitionStatus;
 import zw.powertel.contracts.exception.NotFoundException;
-import zw.powertel.contracts.payload.request.RequisitionRequest;
-import zw.powertel.contracts.payload.response.RequisitionResponse;
-import zw.powertel.contracts.payload.response.ApprovalResponse;
 import zw.powertel.contracts.payload.request.ApprovalRequest;
-import zw.powertel.contracts.repository.RequisitionRepository;
+import zw.powertel.contracts.payload.request.RequisitionRequest;
+import zw.powertel.contracts.payload.response.ApprovalResponse;
+import zw.powertel.contracts.payload.response.RequisitionResponse;
 import zw.powertel.contracts.repository.ApprovalRepository;
+import zw.powertel.contracts.repository.RequisitionRepository;
 import zw.powertel.contracts.service.RequisitionService;
-import org.springframework.security.core.Authentication;
-import org.springframework.security.core.context.SecurityContextHolder;
 
 import java.beans.PropertyDescriptor;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.stream.Collectors;
-
-import java.time.LocalDate;
-import java.time.ZoneId;
-import java.util.Date;
-
-import jakarta.annotation.PostConstruct;
-import jakarta.persistence.EntityNotFoundException;
-import lombok.RequiredArgsConstructor;
-import org.springframework.beans.factory.annotation.Value;
-import org.springframework.stereotype.Service;
-import org.springframework.web.multipart.MultipartFile;
 import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
-
-
-
+import java.time.LocalDate;
+import java.util.*;
+import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
 @Transactional
+@Slf4j
 public class RequisitionServiceImpl implements RequisitionService {
 
     @Value("${file.upload-dir}")
@@ -60,173 +50,280 @@ public class RequisitionServiceImpl implements RequisitionService {
     private final RequisitionRepository requisitionRepository;
     private final ApprovalRepository approvalRepository;
 
+    // ------------------------ CRUD ------------------------
     @Override
     public RequisitionResponse createRequisition(RequisitionRequest request) {
+        log.info("Creating requisition with request: {}", request);
         Requisition requisition = mapToEntity(request);
 
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
         User loggedInUser = (User) authentication.getPrincipal();
         String email = loggedInUser.getEmail();
+        log.info("Setting createdBy and updatedBy to logged-in user: {}", email);
+
         requisition.setCreatedBy(email);
         requisition.setUpdatedBy(email);
+
         Requisition saved = requisitionRepository.save(requisition);
+        log.info("Requisition saved with ID: {}", saved.getId());
         return mapToResponse(saved);
     }
 
     @Override
     public RequisitionResponse updateRequisition(Long id, RequisitionRequest request) {
-        // --- Find existing requisition ---
-        Requisition existingRequisition = requisitionRepository.findById(id)
+        log.info("Updating requisition ID: {} with data: {}", id, request);
+        Requisition existing = requisitionRepository.findById(id)
                 .orElseThrow(() -> new NotFoundException("Requisition not found with id: " + id));
 
-        // --- Map incoming request to a temporary Requisition entity ---
         Requisition updates = mapToEntity(request);
+        copyNonNullProperties(updates, existing);
 
-        // --- Copy non-null properties from updates to existing requisition ---
-        copyNonNullProperties(updates, existingRequisition);
-
-        // --- Save updated requisition ---
-        Requisition updatedRequisition = requisitionRepository.save(existingRequisition);
-
-        return mapToResponse(updatedRequisition);
+        Requisition updated = requisitionRepository.save(existing);
+        log.info("Requisition updated with ID: {}", updated.getId());
+        return mapToResponse(updated);
     }
 
     @Override
     public RequisitionResponse getRequisition(Long id) {
-        Requisition req = requisitionRepository.findById(id)
+        log.info("Fetching requisition with ID: {}", id);
+        Requisition requisition = requisitionRepository.findById(id)
                 .orElseThrow(() -> new NotFoundException("Requisition not found with id: " + id));
-        return mapToResponse(req);
+        log.info("Found requisition: {}", requisition);
+        return mapToResponse(requisition);
     }
 
     @Override
     public List<RequisitionResponse> getAllRequisitions() {
+        log.info("Fetching all requisitions");
         List<Requisition> requisitions = requisitionRepository.findAll();
         if (requisitions.isEmpty()) {
+            log.warn("No requisitions found");
             throw new NotFoundException("No requisitions found");
         }
-        return requisitions.stream()
-                .map(this::mapToResponse)
-                .collect(Collectors.toList());
+        log.info("Found {} requisitions", requisitions.size());
+        return requisitions.stream().map(this::mapToResponse).collect(Collectors.toList());
     }
 
     @Override
     public void deleteRequisition(Long id) {
+        log.info("Deleting requisition with ID: {}", id);
         if (!requisitionRepository.existsById(id)) {
+            log.warn("Requisition not found with ID: {}", id);
             throw new NotFoundException("Requisition not found with id: " + id);
         }
         requisitionRepository.deleteById(id);
+        log.info("Requisition deleted with ID: {}", id);
     }
 
-
-
+    // ------------------------ FILTERS ------------------------
     @Override
-    public List<RequisitionResponse> getContractsDueForRenewal() {
-        Date fiveDaysFromNow = Date.from(LocalDate.now()
-                .plusDays(5)
-                .atStartOfDay(ZoneId.systemDefault())
-                .toInstant());
-
-        List<Requisition> dueContracts = requisitionRepository.findContractsDueForPayment(
-                IsRenewable.YES,
-                RequisitionStatus.CONTRACT,
-                fiveDaysFromNow
-        );
-
-        if (dueContracts.isEmpty()) {
-            throw new NotFoundException("No renewable contracts due for payment within 5 days.");
+    public List<RequisitionResponse> getRequisitionsByCreator(String createdBy) {
+        log.info("Fetching requisitions created by: {}", createdBy);
+        List<Requisition> requisitions = requisitionRepository.findByCreatedBy(createdBy);
+        if (requisitions.isEmpty()) {
+            log.warn("No requisitions found for user: {}", createdBy);
+            throw new NotFoundException("No requisitions found for user: " + createdBy);
         }
-
-        return dueContracts.stream()
-                .map(this::mapToResponse)
-                .collect(Collectors.toList());
+        return requisitions.stream().map(this::mapToResponse).collect(Collectors.toList());
     }
 
     @Override
-    public Long countContractsDueForRenewal() {
-        Date fiveDaysFromNow = Date.from(LocalDate.now()
-                .plusDays(5)
-                .atStartOfDay(ZoneId.systemDefault())
-                .toInstant());
-
-        return requisitionRepository.countContractsDueForPayment(
-                IsRenewable.YES,
-                RequisitionStatus.CONTRACT,
-                fiveDaysFromNow
-        );
-    }
-
-
-    @Override
-    public List<RequisitionResponse> getContractsDueForPayment() {
-        Date thirtyDaysFromNow = Date.from(LocalDate.now()
-                .plusDays(30)
-                .atStartOfDay(ZoneId.systemDefault())
-                .toInstant());
-
-        List<Requisition> dueContracts = requisitionRepository.findContractsDueForPayment(
-                RequisitionStatus.CONTRACT,
-                PaymentStatus.DEPOSIT_DUE,
-                thirtyDaysFromNow
-        );
-
-        if (dueContracts.isEmpty()) {
-            throw new NotFoundException("No contracts found that are due for payment within the next 30 days.");
+    public List<RequisitionResponse> getRequisitionsByStatus(RequisitionStatus status) {
+        log.info("Fetching requisitions with status: {}", status);
+        List<Requisition> requisitions = requisitionRepository.findByRequisitionStatus(status);
+        if (requisitions.isEmpty()) {
+            log.warn("No requisitions found with status: {}", status);
+            throw new NotFoundException("No requisitions found with status: " + status);
         }
-
-        return dueContracts.stream()
-                .map(this::mapToResponse)
-                .collect(Collectors.toList());
-    }
-
-    @Override
-    public Long countContractsDueForPayment() {
-        Date thirtyDaysFromNow = Date.from(LocalDate.now()
-                .plusDays(30)
-                .atStartOfDay(ZoneId.systemDefault())
-                .toInstant());
-
-        return requisitionRepository.countContractsDueForPayment(
-                RequisitionStatus.CONTRACT,
-                PaymentStatus.DEPOSIT_DUE,
-                thirtyDaysFromNow
-        );
+        return requisitions.stream().map(this::mapToResponse).collect(Collectors.toList());
     }
 
     @Override
     public Long countRequisitionsByStatus(RequisitionStatus status) {
-        return requisitionRepository.countByRequisitionStatus(status);
+        log.info("Counting requisitions with status: {}", status);
+        Long count = requisitionRepository.countByRequisitionStatus(status);
+        log.info("Found {} requisitions with status: {}", count, status);
+        return count;
     }
 
+    // ------------------------ CONTRACTS ------------------------
+    @Override
+    public List<RequisitionResponse> getContractsDueForRenewal() {
+        LocalDate fiveDaysFromNow = LocalDate.now().plusDays(5);
+        log.info("Fetching renewable contracts due within 5 days, up to: {}", fiveDaysFromNow);
 
-    // --------------------------------------------------------------------------------------------
-    // Utility: Copy only non-null properties
-    // --------------------------------------------------------------------------------------------
+        List<Requisition> dueContracts = requisitionRepository.findContractsDueForPayment(
+                IsRenewable.YES, RequisitionStatus.CONTRACT, fiveDaysFromNow
+        );
+
+        if (dueContracts.isEmpty()) {
+            log.warn("No renewable contracts due within 5 days");
+            throw new NotFoundException("No renewable contracts due within 5 days");
+        }
+
+        log.info("Found {} renewable contracts due within 5 days", dueContracts.size());
+        return dueContracts.stream().map(this::mapToResponse).collect(Collectors.toList());
+    }
+
+    @Override
+    public Long countContractsDueForRenewal() {
+        LocalDate fiveDaysFromNow = LocalDate.now().plusDays(5);
+        log.info("Counting renewable contracts due within 5 days");
+        Long count = requisitionRepository.countContractsDueForPayment(
+                IsRenewable.YES, RequisitionStatus.CONTRACT, fiveDaysFromNow
+        );
+        log.info("Found {} renewable contracts due within 5 days", count);
+        return count;
+    }
+
+    @Override
+    public List<RequisitionResponse> getContractsDueForPayment() {
+        LocalDate thirtyDaysFromNow = LocalDate.now().plusDays(30);
+        log.info("Fetching contracts due for payment within 30 days, up to: {}", thirtyDaysFromNow);
+
+        List<Requisition> dueContracts = requisitionRepository.findContractsDueForPayment(
+                RequisitionStatus.CONTRACT, PaymentStatus.DEPOSIT_DUE, thirtyDaysFromNow
+        );
+
+        if (dueContracts.isEmpty()) {
+            log.warn("No contracts due for payment within 30 days");
+            throw new NotFoundException("No contracts due for payment within 30 days");
+        }
+
+        log.info("Found {} contracts due for payment within 30 days", dueContracts.size());
+        return dueContracts.stream().map(this::mapToResponse).collect(Collectors.toList());
+    }
+
+    @Override
+    public Long countContractsDueForPayment() {
+        LocalDate thirtyDaysFromNow = LocalDate.now().plusDays(30);
+        log.info("Counting contracts due for payment within 30 days");
+        Long count = requisitionRepository.countContractsDueForPayment(
+                RequisitionStatus.CONTRACT, PaymentStatus.DEPOSIT_DUE, thirtyDaysFromNow
+        );
+        log.info("Found {} contracts due for payment", count);
+        return count;
+    }
+
+    // ------------------------ APPROVAL ------------------------
+    @Override
+    public ApprovalResponse addApprovalToRequisition(Long requisitionId, ApprovalRequest approvalRequest) {
+        log.info("Adding approval to requisition ID: {} with request: {}", requisitionId, approvalRequest);
+        Requisition requisition = requisitionRepository.findById(requisitionId)
+                .orElseThrow(() -> new NotFoundException("Requisition not found with id: " + requisitionId));
+
+        Approval approval = requisition.getApproval();
+        if (approval != null) {
+            log.info("Updating existing approval ID: {}", approval.getId());
+            Approval updates = mapApprovalToEntity(approvalRequest);
+            copyNonNullProperties(updates, approval);
+            Approval saved = approvalRepository.save(approval);
+            log.info("Updated approval ID: {}", saved.getId());
+            return mapApprovalToResponse(saved);
+        } else {
+            log.info("Creating new approval for requisition ID: {}", requisitionId);
+            Approval newApproval = mapApprovalToEntity(approvalRequest);
+            Approval savedApproval = approvalRepository.save(newApproval);
+            requisition.setApproval(savedApproval);
+            requisitionRepository.save(requisition);
+            log.info("Created approval ID: {} for requisition ID: {}", savedApproval.getId(), requisitionId);
+            return mapApprovalToResponse(savedApproval);
+        }
+    }
+
+    @Override
+    public ApprovalResponse getApprovalByRequisitionId(Long requisitionId) {
+        log.info("Fetching approval for requisition ID: {}", requisitionId);
+        Requisition requisition = requisitionRepository.findById(requisitionId)
+                .orElseThrow(() -> new EntityNotFoundException("Requisition not found with id: " + requisitionId));
+        Approval approval = requisition.getApproval();
+        if (approval == null) {
+            log.warn("Approval not found for requisition ID: {}", requisitionId);
+            throw new EntityNotFoundException("Approval not found for requisition id: " + requisitionId);
+        }
+        log.info("Found approval ID: {} for requisition ID: {}", approval.getId(), requisitionId);
+        return mapApprovalToResponse(approval);
+    }
+
+    // ------------------------ SUMMARY ------------------------
+    @Override
+    public Map<String, Long> getRequisitionSummaryByStatus() {
+        log.info("Generating requisition summary by status");
+        Map<String, Long> summary = new HashMap<>();
+        requisitionRepository.countRequisitionsGroupedByStatus().forEach(row -> {
+            RequisitionStatus status = (RequisitionStatus) row[0];
+            Long count = (Long) row[1];
+            summary.put(status.name(), count);
+            log.info("Status: {}, Count: {}", status, count);
+        });
+        return summary;
+    }
+
+    // ------------------------ FILE UPLOAD ------------------------
+    @PostConstruct
+    public void init() {
+        File directory = new File(uploadDir);
+        if (!directory.exists()) {
+            directory.mkdirs();
+            log.info("Created upload directory at: {}", uploadDir);
+        } else {
+            log.info("Upload directory exists at: {}", uploadDir);
+        }
+    }
+
+    @Override
+    public String uploadFiles(Long requisitionId, MultipartFile[] files) {
+        log.info("Uploading {} files for requisition ID: {}", files.length, requisitionId);
+        Requisition requisition = requisitionRepository.findById(requisitionId)
+                .orElseThrow(() -> new NotFoundException("Requisition not found with id: " + requisitionId));
+
+        StringBuilder uploadedFiles = new StringBuilder();
+        for (MultipartFile file : files) {
+            try {
+                Path path = Paths.get(uploadDir, file.getOriginalFilename());
+                Files.copy(file.getInputStream(), path);
+                log.info("Saved file {} at {}", file.getOriginalFilename(), path);
+
+                Attachment attachment = new Attachment();
+                attachment.setFileName(file.getOriginalFilename());
+                attachment.setFilePath(path.toString());
+                attachment.setFileType(file.getContentType());
+                requisition.addAttachment(attachment);
+
+                uploadedFiles.append(file.getOriginalFilename()).append(", ");
+            } catch (IOException e) {
+                log.error("Failed to upload file: {}", file.getOriginalFilename(), e);
+                throw new RuntimeException("Failed to upload file: " + file.getOriginalFilename(), e);
+            }
+        }
+
+        requisitionRepository.save(requisition);
+        log.info("Uploaded files for requisition ID: {}", requisitionId);
+        return uploadedFiles.toString();
+    }
+
+    // ------------------------ UTILITIES ------------------------
     private void copyNonNullProperties(Object source, Object target) {
         if (source == null || target == null) return;
 
         BeanWrapper src = new BeanWrapperImpl(source);
         BeanWrapper trg = new BeanWrapperImpl(target);
 
-        for (PropertyDescriptor propertyDescriptor : src.getPropertyDescriptors()) {
-            String propertyName = propertyDescriptor.getName();
-
-            // skip Spring/Java internals and id - we don't want to overwrite identity
-            if ("class".equals(propertyName) || "id".equals(propertyName)) continue;
-
-            Object providedValue = src.getPropertyValue(propertyName);
-            if (providedValue != null) {
-                trg.setPropertyValue(propertyName, providedValue);
+        for (PropertyDescriptor pd : src.getPropertyDescriptors()) {
+            String name = pd.getName();
+            if ("class".equals(name) || "id".equals(name)) continue;
+            Object value = src.getPropertyValue(name);
+            if (value != null) {
+                trg.setPropertyValue(name, value);
+                log.debug("Copied property {} with value {}", name, value);
             }
         }
     }
 
-    // --------------------------------------------------------------------------------------------
-    // Mapping helpers for Requisition <-> RequisitionRequest/Response
-    // --------------------------------------------------------------------------------------------
-    private Requisition mapToEntity(RequisitionRequest req) {
+private Requisition mapToEntity(RequisitionRequest req) {
         if (req == null) return null;
 
-        Requisition r = Requisition.builder()
+        return Requisition.builder()
                 .requisitionTo(req.getRequisitionTo())
                 .requisitionFrom(req.getRequisitionFrom())
                 .description(req.getDescription())
@@ -280,88 +377,14 @@ public class RequisitionServiceImpl implements RequisitionService {
                 .secretaryDate(req.getSecretaryDate())
                 .requisitionStatus(req.getRequisitionStatus())
                 .paymentStatus(req.getPaymentStatus())
-
                 .build();
-
-        if (req.getApproval() != null) {
-            r.setApproval(mapApprovalToEntity(req.getApproval()));
-        }
-
-        return r;
-    }
-
-
-    @Override
-    public List<RequisitionResponse> getRequisitionsByCreator(String createdBy) {
-        List<Requisition> requisitions = requisitionRepository.findByCreatedBy(createdBy);
-        if (requisitions.isEmpty()) {
-            throw new NotFoundException("No requisitions found for user: " + createdBy);
-        }
-        return requisitions.stream()
-                .map(this::mapToResponse)
-                .collect(Collectors.toList());
-    }
-
-    @Override
-    public List<RequisitionResponse> getRequisitionsByStatus(RequisitionStatus status) {
-        List<Requisition> requisitions = requisitionRepository.findByRequisitionStatus(status);
-        if (requisitions.isEmpty()) {
-            throw new NotFoundException("No requisitions found with status: " + status);
-        }
-        return requisitions.stream()
-                .map(this::mapToResponse)
-                .collect(Collectors.toList());
-    }
-
-    @Override
-    public ApprovalResponse getApprovalByRequisitionId(Long requisitionId) {
-        Requisition requisition = requisitionRepository.findById(requisitionId)
-                .orElseThrow(() -> new EntityNotFoundException("Requisition not found with id: " + requisitionId));
-
-        Approval approval = requisition.getApproval();
-        if (approval == null) {
-            throw new EntityNotFoundException("Approval not found for requisition with id: " + requisitionId);
-        }
-
-        // Map Approval to ApprovalResponse
-        ApprovalResponse approvalResponse = ApprovalResponse.builder()
-                .id(approval.getId())
-                .approvalTo(approval.getApprovalTo())
-                .approvalDate(approval.getApprovalDate())
-                .approvalReference(approval.getApprovalReference())
-                .legalSignature(approval.getLegalSignature())
-                .legalSignatureDate(approval.getLegalSignatureDate())
-                .legalComments(approval.getLegalComments())
-                .technicalSignature(approval.getTechnicalSignature())
-                .technicalSignatureDate(approval.getTechnicalSignatureDate())
-                .technicalComments(approval.getTechnicalComments())
-                .financialSignature(approval.getFinancialSignature())
-                .financialSignatureDate(approval.getFinancialSignatureDate())
-                .financialComments(approval.getFinancialComments())
-                .commercialSignature(approval.getCommercialSignature())
-                .commercialSignatureDate(approval.getCommercialSignatureDate())
-                .commercialComments(approval.getCommercialComments())
-                .businessDevelopmentSignature(approval.getBusinessDevelopmentSignature())
-                .businessDevelopmentSignatureDate(approval.getBusinessDevelopmentSignatureDate())
-                .businessDevelopmentComments(approval.getBusinessDevelopmentComments())
-                .procurementSignature(approval.getProcurementSignature())
-                .procurementSignatureDate(approval.getProcurementSignatureDate())
-                .procurementComments(approval.getProcurementComments())
-                .approvalStatus(approval.getApprovalStatus())
-                .createdAt(approval.getCreatedAt())
-                .createdBy(approval.getCreatedBy())
-                .updatedAt(approval.getUpdatedAt())
-                .updatedBy(approval.getUpdatedBy())
-                .build();
-
-        return approvalResponse;
     }
 
 
     private RequisitionResponse mapToResponse(Requisition req) {
         if (req == null) return null;
 
-        RequisitionResponse response = RequisitionResponse.builder()
+        return RequisitionResponse.builder()
                 .id(req.getId())
                 .requisitionTo(req.getRequisitionTo())
                 .requisitionFrom(req.getRequisitionFrom())
@@ -420,71 +443,36 @@ public class RequisitionServiceImpl implements RequisitionService {
                 .createdBy(req.getCreatedBy())
                 .updatedAt(req.getUpdatedAt())
                 .updatedBy(req.getUpdatedBy())
+                .approval(req.getApproval() != null ? mapApprovalToResponse(req.getApproval()) : null)
                 .build();
-
-        if (req.getApproval() != null) {
-            response.setApproval(mapApprovalToResponse(req.getApproval()));
-        }
-
-        return response;
     }
 
-    @Override
-    public ApprovalResponse addApprovalToRequisition(Long requisitionId, ApprovalRequest approvalRequest) {
-        // --- Find existing requisition ---
-        Requisition existingRequisition = requisitionRepository.findById(requisitionId)
-                .orElseThrow(() -> new NotFoundException("Requisition not found with id: " + requisitionId));
-
-        Approval existingApproval = existingRequisition.getApproval();
-
-        // If an approval already exists, update it; otherwise create a new one
-        if (existingApproval != null) {
-            // Update existing approval with non-null properties
-            Approval updates = mapApprovalToEntity(approvalRequest);
-            copyNonNullProperties(updates, existingApproval);
-            Approval updatedApproval = approvalRepository.save(existingApproval); // Save updated approval
-            return mapApprovalToResponse(updatedApproval); // Return updated approval details
-        } else {
-            // Map incoming ApprovalRequest to Approval entity
-            Approval newApproval = mapApprovalToEntity(approvalRequest);
-            // Save the new approval
-            Approval savedApproval = approvalRepository.save(newApproval);
-            // Update the requisition to link to the saved approval
-            existingRequisition.setApproval(savedApproval);
-            requisitionRepository.save(existingRequisition); // Save the updated requisition
-            return mapApprovalToResponse(savedApproval); // Return new approval details
-        }
-    }
-
-    // --------------------------------------------------------------------------------------------
-    // Approval Mappers
-    // --------------------------------------------------------------------------------------------
-    private Approval mapApprovalToEntity(ApprovalRequest request) {
-        if (request == null) return null;
+    private Approval mapApprovalToEntity(ApprovalRequest req) {
+        if (req == null) return null;
 
         return Approval.builder()
-                .approvalTo(request.getApprovalTo())
-                .approvalDate(request.getApprovalDate())
-                .approvalReference(request.getApprovalReference())
-                .legalSignature(request.getLegalSignature())
-                .legalSignatureDate(request.getLegalSignatureDate())
-                .legalComments(request.getLegalComments())
-                .technicalSignature(request.getTechnicalSignature())
-                .technicalSignatureDate(request.getTechnicalSignatureDate())
-                .technicalComments(request.getTechnicalComments())
-                .financialSignature(request.getFinancialSignature())
-                .financialSignatureDate(request.getFinancialSignatureDate())
-                .financialComments(request.getFinancialComments())
-                .commercialSignature(request.getCommercialSignature())
-                .commercialSignatureDate(request.getCommercialSignatureDate())
-                .commercialComments(request.getCommercialComments())
-                .businessDevelopmentSignature(request.getBusinessDevelopmentSignature())
-                .businessDevelopmentSignatureDate(request.getBusinessDevelopmentSignatureDate())
-                .businessDevelopmentComments(request.getBusinessDevelopmentComments())
-                .procurementSignature(request.getProcurementSignature())
-                .procurementSignatureDate(request.getProcurementSignatureDate())
-                .procurementComments(request.getProcurementComments())
-                .approvalStatus(request.getApprovalStatus())
+                .approvalTo(req.getApprovalTo())
+                .approvalDate(req.getApprovalDate())
+                .approvalReference(req.getApprovalReference())
+                .legalSignature(req.getLegalSignature())
+                .legalSignatureDate(req.getLegalSignatureDate())
+                .legalComments(req.getLegalComments())
+                .technicalSignature(req.getTechnicalSignature())
+                .technicalSignatureDate(req.getTechnicalSignatureDate())
+                .technicalComments(req.getTechnicalComments())
+                .financialSignature(req.getFinancialSignature())
+                .financialSignatureDate(req.getFinancialSignatureDate())
+                .financialComments(req.getFinancialComments())
+                .commercialSignature(req.getCommercialSignature())
+                .commercialSignatureDate(req.getCommercialSignatureDate())
+                .commercialComments(req.getCommercialComments())
+                .businessDevelopmentSignature(req.getBusinessDevelopmentSignature())
+                .businessDevelopmentSignatureDate(req.getBusinessDevelopmentSignatureDate())
+                .businessDevelopmentComments(req.getBusinessDevelopmentComments())
+                .procurementSignature(req.getProcurementSignature())
+                .procurementSignatureDate(req.getProcurementSignatureDate())
+                .procurementComments(req.getProcurementComments())
+                .approvalStatus(req.getApprovalStatus())
                 .build();
     }
 
@@ -521,59 +509,4 @@ public class RequisitionServiceImpl implements RequisitionService {
                 .updatedBy(approval.getUpdatedBy())
                 .build();
     }
-
-    @Override
-    public Map<String, Long> getRequisitionSummaryByStatus() {
-        List<Object[]> results = requisitionRepository.countRequisitionsGroupedByStatus();
-
-        Map<String, Long> summary = new HashMap<>();
-        for (Object[] row : results) {
-            RequisitionStatus status = (RequisitionStatus) row[0];
-            Long count = (Long) row[1];
-            summary.put(status.name(), count);
-        }
-
-        return summary;
-    }
-
-
-
-    @PostConstruct
-    public void init() {
-        // Create the upload directory if it does not exist
-        File directory = new File(uploadDir);
-        if (!directory.exists()) {
-            directory.mkdirs();
-        }
-    }
-
-    @Override
-    public String uploadFiles(Long requisitionId, MultipartFile[] files) {
-        Requisition requisition = requisitionRepository.findById(requisitionId)
-                .orElseThrow(() -> new NotFoundException("Requisition not found with id: " + requisitionId));
-
-        StringBuilder uploadedFiles = new StringBuilder();
-
-        for (MultipartFile file : files) {
-            try {
-                Path path = Paths.get(uploadDir, file.getOriginalFilename());
-                Files.copy(file.getInputStream(), path);
-
-                Attachment attachment = new Attachment();
-                attachment.setFileName(file.getOriginalFilename());
-                attachment.setFilePath(path.toString());
-                attachment.setFileType(file.getContentType());
-                requisition.addAttachment(attachment);
-
-                uploadedFiles.append(file.getOriginalFilename()).append(", ");
-            } catch (IOException e) {
-                throw new RuntimeException("Failed to upload file: " + file.getOriginalFilename(), e);
-            }
-        }
-
-        requisitionRepository.save(requisition);
-        return uploadedFiles.toString();
-    }
-
-
 }

@@ -16,6 +16,8 @@ import zw.powertel.contracts.repository.RequisitionRepository;
 import zw.powertel.contracts.repository.UserRepository;
 import zw.powertel.contracts.service.impl.AuthenticationServiceImpl;
 
+import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.util.Date;
 import java.util.Random;
 
@@ -45,7 +47,7 @@ public class DataLoader implements CommandLineRunner {
         createSuperAdmin();
 
         // Load 200 requisitions with approvals
-       //  loadRequisitions();
+          loadRequisitions();
 
     }
 
@@ -81,12 +83,10 @@ public class DataLoader implements CommandLineRunner {
             RequisitionStatus requisitionStatus = getRandomRequisitionStatus();
             ApprovalStatus approvalStatus = getRandomApprovalStatus();
 
-            // Current date
-            Date currentDate = new Date();
-            // Approval date within ±5 days
-            Date approvalDate = new Date(currentDate.getTime() + (random.nextInt(10) - 5) * 24 * 60 * 60 * 1000);
-            // End date 30 days from now
-            Date endDate = new Date(currentDate.getTime() + 30L * 24 * 60 * 60 * 1000);
+            LocalDateTime currentDate = LocalDateTime.now();
+            LocalDateTime startDate = currentDate.minusDays(random.nextInt(10)); // Start date within last 10 days
+            LocalDateTime endDate = startDate.plusDays(30); // End date 30 days after start
+            LocalDateTime approvalDate = startDate.plusDays(random.nextInt(10));
 
             return Requisition.builder()
                     .requisitionTo(faker.company().name())
@@ -102,8 +102,8 @@ public class DataLoader implements CommandLineRunner {
                     .contactNumber(faker.phoneNumber().phoneNumber())
                     .contactPersonCapacity(faker.lorem().word())
                     .justification(faker.lorem().sentence())
-                    .startDate(currentDate)
-                    .endDate(endDate)
+                    .startDate(LocalDate.from(currentDate))
+                    .endDate(LocalDate.from(endDate))
                     .durationDays(String.valueOf(faker.number().randomDigitNotZero()))
                     .durationWeeks(faker.number().digits(1))
                     .durationMonths(faker.number().digits(1))
@@ -134,13 +134,13 @@ public class DataLoader implements CommandLineRunner {
                     .fundingAvailable(getRandomFundingAvailable()) // Get value from enum
                     .procurementComplied(getRandomProcurementComplied()) // Get value from enum
                     .financeDirector(faker.name().fullName())
-                    .financeDate(currentDate)
+                    .financeDate(LocalDate.from(currentDate))
                     .procurementManager(faker.name().fullName())
-                    .procurementDate(currentDate)
+                    .procurementDate(LocalDate.from(currentDate))
                     .headOfDept(faker.name().fullName())
-                    .headDate(currentDate)
+                    .headDate(LocalDate.from(currentDate))
                     .companySecretary(faker.name().fullName())
-                    .secretaryDate(currentDate)
+                    .secretaryDate(LocalDate.from(currentDate))
                     .requisitionStatus(requisitionStatus)
                     .paymentStatus(getRandomPaymentStatus())
                     .approval(approval)
