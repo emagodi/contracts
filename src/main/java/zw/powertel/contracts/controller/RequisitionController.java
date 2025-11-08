@@ -33,7 +33,7 @@ public class RequisitionController {
     @PostMapping("/create")
     @Operation(summary = "Create a new requisition")
     @ResponseStatus(HttpStatus.CREATED)
-    @PreAuthorize("hasAuthority('READ_PRIVILEGE')")
+    @PreAuthorize("hasAuthority('READ_PRIVILEGE') and hasAnyRole('ADMIN', 'PALEGAL', 'COMPANYSECRETARY', 'MANAGINGDIRECTOR', 'PROCUREMENTMANAGER', 'FINANCEDIRECTOR', 'TECHNICALDIRECTOR', 'COMMERCIALDIRECTOR', 'BUSINESSMANAGER', 'HOD', 'USER')")
     public ResponseEntity<RequisitionResponse> create(@RequestBody RequisitionRequest req) {
         log.info("Received request to create requisition: {}", req);
         RequisitionResponse response = requisitionService.createRequisition(req);
@@ -44,7 +44,7 @@ public class RequisitionController {
     @PutMapping("/update/{id}")
     @Operation(summary = "Update requisition (partial update: nulls ignored)")
     @ResponseStatus(HttpStatus.OK)
-    @PreAuthorize("hasAuthority('READ_PRIVILEGE')")
+    @PreAuthorize("hasAuthority('READ_PRIVILEGE') and hasAnyRole('ADMIN', 'PALEGAL', 'COMPANYSECRETARY', 'MANAGINGDIRECTOR', 'PROCUREMENTMANAGER', 'FINANCEDIRECTOR', 'TECHNICALDIRECTOR', 'COMMERCIALDIRECTOR', 'BUSINESSMANAGER', 'HOD', 'USER')")
     public ResponseEntity<RequisitionResponse> update(@PathVariable Long id, @RequestBody RequisitionRequest req) {
         log.info("Received request to update requisition ID: {} with data: {}", id, req);
         RequisitionResponse response = requisitionService.updateRequisition(id, req);
@@ -55,7 +55,7 @@ public class RequisitionController {
     @GetMapping("/all")
     @Operation(summary = "List all requisitions")
     @ResponseStatus(HttpStatus.OK)
-    @PreAuthorize("hasAuthority('READ_PRIVILEGE')")
+    @PreAuthorize("hasAuthority('READ_PRIVILEGE') and hasAnyRole('ADMIN', 'PALEGAL', 'COMPANYSECRETARY', 'MANAGINGDIRECTOR', 'PROCUREMENTMANAGER', 'FINANCEDIRECTOR', 'TECHNICALDIRECTOR', 'COMMERCIALDIRECTOR', 'BUSINESSMANAGER', 'HOD', 'USER')")
     public ResponseEntity<List<RequisitionResponse>> list() {
         log.info("Fetching all requisitions");
         List<RequisitionResponse> requisitions = requisitionService.getAllRequisitions();
@@ -66,7 +66,7 @@ public class RequisitionController {
     @GetMapping("/find/{id}")
     @Operation(summary = "Get requisition by ID")
     @ResponseStatus(HttpStatus.OK)
-    @PreAuthorize("hasAuthority('READ_PRIVILEGE')")
+    @PreAuthorize("hasAuthority('READ_PRIVILEGE') and hasAnyRole('ADMIN', 'PALEGAL', 'COMPANYSECRETARY', 'MANAGINGDIRECTOR', 'PROCUREMENTMANAGER', 'FINANCEDIRECTOR', 'TECHNICALDIRECTOR', 'COMMERCIALDIRECTOR', 'BUSINESSMANAGER', 'HOD', 'USER')")
     public ResponseEntity<RequisitionResponse> get(@PathVariable Long id) {
         log.info("Fetching requisition with ID: {}", id);
         RequisitionResponse response = requisitionService.getRequisition(id);
@@ -77,7 +77,7 @@ public class RequisitionController {
     @DeleteMapping("/delete/{id}")
     @Operation(summary = "Delete requisition by ID")
     @ResponseStatus(HttpStatus.NO_CONTENT)
-    @PreAuthorize("hasAuthority('READ_PRIVILEGE')")
+    @PreAuthorize("hasAuthority('READ_PRIVILEGE') and hasAnyRole('ADMIN', 'PALEGAL', 'COMPANYSECRETARY', 'MANAGINGDIRECTOR', 'PROCUREMENTMANAGER', 'FINANCEDIRECTOR', 'TECHNICALDIRECTOR', 'COMMERCIALDIRECTOR', 'BUSINESSMANAGER', 'HOD', 'USER')")
     public ResponseEntity<Void> delete(@PathVariable Long id) {
         log.info("Deleting requisition with ID: {}", id);
         requisitionService.deleteRequisition(id);
@@ -89,7 +89,7 @@ public class RequisitionController {
     @PostMapping("/{id}/approval")
     @Operation(summary = "Add approval to a requisition")
     @ResponseStatus(HttpStatus.CREATED)
-    @PreAuthorize("hasAuthority('READ_PRIVILEGE')")
+    @PreAuthorize("hasAuthority('READ_PRIVILEGE') and hasAnyRole('ADMIN', 'PALEGAL', 'COMPANYSECRETARY', 'MANAGINGDIRECTOR', 'PROCUREMENTMANAGER', 'FINANCEDIRECTOR', 'TECHNICALDIRECTOR', 'COMMERCIALDIRECTOR', 'BUSINESSMANAGER', 'HOD', 'USER')")
     public ResponseEntity<ApprovalResponse> addApprovalToRequisition(
             @PathVariable Long id,
             @RequestBody ApprovalRequest approvalRequest) {
@@ -103,7 +103,7 @@ public class RequisitionController {
     @GetMapping("/{id}/approval")
     @Operation(summary = "Get approval details by requisition ID")
     @ResponseStatus(HttpStatus.OK)
-    @PreAuthorize("hasAuthority('READ_PRIVILEGE')")
+    @PreAuthorize("hasAuthority('READ_PRIVILEGE') and hasAnyRole('ADMIN', 'PALEGAL', 'COMPANYSECRETARY', 'MANAGINGDIRECTOR', 'PROCUREMENTMANAGER', 'FINANCEDIRECTOR', 'TECHNICALDIRECTOR', 'COMMERCIALDIRECTOR', 'BUSINESSMANAGER', 'HOD', 'USER')")
     public ResponseEntity<ApprovalResponse> getApprovalByRequisitionId(@PathVariable Long id) {
         log.info("Fetching approval for requisition ID: {}", id);
         ApprovalResponse response = requisitionService.getApprovalByRequisitionId(id);
@@ -115,7 +115,7 @@ public class RequisitionController {
     @GetMapping("/by-creator/{createdBy}")
     @Operation(summary = "Get requisitions by creator")
     @ResponseStatus(HttpStatus.OK)
-    @PreAuthorize("hasAuthority('READ_PRIVILEGE')")
+    @PreAuthorize("hasAuthority('READ_PRIVILEGE') and hasAnyRole('ADMIN', 'PALEGAL', 'COMPANYSECRETARY', 'MANAGINGDIRECTOR', 'PROCUREMENTMANAGER', 'FINANCEDIRECTOR', 'TECHNICALDIRECTOR', 'COMMERCIALDIRECTOR', 'BUSINESSMANAGER', 'HOD', 'USER')")
     public ResponseEntity<List<RequisitionResponse>> getByCreator(@PathVariable String createdBy) {
         log.info("Fetching requisitions created by: {}", createdBy);
         List<RequisitionResponse> response = requisitionService.getRequisitionsByCreator(createdBy);
@@ -126,7 +126,7 @@ public class RequisitionController {
     @GetMapping("/by-status/{status}")
     @Operation(summary = "Get requisitions by status")
     @ResponseStatus(HttpStatus.OK)
-    @PreAuthorize("hasAuthority('READ_PRIVILEGE')")
+    @PreAuthorize("hasAuthority('READ_PRIVILEGE') and hasAnyRole('ADMIN', 'PALEGAL', 'COMPANYSECRETARY', 'MANAGINGDIRECTOR', 'PROCUREMENTMANAGER', 'FINANCEDIRECTOR', 'TECHNICALDIRECTOR', 'COMMERCIALDIRECTOR', 'BUSINESSMANAGER', 'HOD', 'USER')")
     public ResponseEntity<List<RequisitionResponse>> getByStatus(@PathVariable RequisitionStatus status) {
         log.info("Fetching requisitions with status: {}", status);
         List<RequisitionResponse> response = requisitionService.getRequisitionsByStatus(status);
@@ -138,7 +138,7 @@ public class RequisitionController {
     @GetMapping("/contracts-expiry")
     @Operation(summary = "Get due contracts for renewal")
     @ResponseStatus(HttpStatus.OK)
-    @PreAuthorize("hasAuthority('READ_PRIVILEGE')")
+    @PreAuthorize("hasAuthority('READ_PRIVILEGE') and hasAnyRole('ADMIN', 'PALEGAL', 'COMPANYSECRETARY', 'MANAGINGDIRECTOR', 'PROCUREMENTMANAGER', 'FINANCEDIRECTOR', 'TECHNICALDIRECTOR', 'COMMERCIALDIRECTOR', 'BUSINESSMANAGER', 'HOD', 'USER')")
     public ResponseEntity<List<RequisitionResponse>> getContractsDueForRenewal() {
         log.info("Fetching contracts due for renewal");
         List<RequisitionResponse> response = requisitionService.getContractsDueForRenewal();
@@ -149,7 +149,7 @@ public class RequisitionController {
     @GetMapping("/contracts-expiry/count")
     @Operation(summary = "Get count of contracts due for renewal")
     @ResponseStatus(HttpStatus.OK)
-    @PreAuthorize("hasAuthority('READ_PRIVILEGE')")
+    @PreAuthorize("hasAuthority('READ_PRIVILEGE') and hasAnyRole('ADMIN', 'PALEGAL', 'COMPANYSECRETARY', 'MANAGINGDIRECTOR', 'PROCUREMENTMANAGER', 'FINANCEDIRECTOR', 'TECHNICALDIRECTOR', 'COMMERCIALDIRECTOR', 'BUSINESSMANAGER', 'HOD', 'USER')")
     public ResponseEntity<Long> countContractsDueForRenewal() {
         log.info("Counting contracts due for renewal");
         Long count = requisitionService.countContractsDueForRenewal();
@@ -160,7 +160,7 @@ public class RequisitionController {
     @GetMapping("/contracts-due")
     @Operation(summary = "Get contracts due for payment (Deposit Due within 30 days)")
     @ResponseStatus(HttpStatus.OK)
-    @PreAuthorize("hasAuthority('READ_PRIVILEGE')")
+    @PreAuthorize("hasAuthority('READ_PRIVILEGE') and hasAnyRole('ADMIN', 'PALEGAL', 'COMPANYSECRETARY', 'MANAGINGDIRECTOR', 'PROCUREMENTMANAGER', 'FINANCEDIRECTOR', 'TECHNICALDIRECTOR', 'COMMERCIALDIRECTOR', 'BUSINESSMANAGER', 'HOD', 'USER')")
     public ResponseEntity<List<RequisitionResponse>> getContractsDueForPayment() {
         log.info("Fetching contracts due for payment");
         List<RequisitionResponse> response = requisitionService.getContractsDueForPayment();
@@ -171,7 +171,7 @@ public class RequisitionController {
     @GetMapping("/contracts-due/count")
     @Operation(summary = "Get count of contracts due for payment")
     @ResponseStatus(HttpStatus.OK)
-    @PreAuthorize("hasAuthority('READ_PRIVILEGE')")
+    @PreAuthorize("hasAuthority('READ_PRIVILEGE') and hasAnyRole('ADMIN', 'PALEGAL', 'COMPANYSECRETARY', 'MANAGINGDIRECTOR', 'PROCUREMENTMANAGER', 'FINANCEDIRECTOR', 'TECHNICALDIRECTOR', 'COMMERCIALDIRECTOR', 'BUSINESSMANAGER', 'HOD', 'USER')")
     public ResponseEntity<Long> countContractsDueForPayment() {
         log.info("Counting contracts due for payment");
         Long count = requisitionService.countContractsDueForPayment();
@@ -183,7 +183,7 @@ public class RequisitionController {
     @GetMapping("/summary/status")
     @Operation(summary = "Get requisition summary by status")
     @ResponseStatus(HttpStatus.OK)
-    @PreAuthorize("hasAuthority('READ_PRIVILEGE')")
+    @PreAuthorize("hasAuthority('READ_PRIVILEGE') and hasAnyRole('ADMIN', 'PALEGAL', 'COMPANYSECRETARY', 'MANAGINGDIRECTOR', 'PROCUREMENTMANAGER', 'FINANCEDIRECTOR', 'TECHNICALDIRECTOR', 'COMMERCIALDIRECTOR', 'BUSINESSMANAGER', 'HOD', 'USER')")
     public ResponseEntity<Map<String, Long>> getRequisitionSummaryByStatus() {
         log.info("Fetching requisition summary by status");
         Map<String, Long> summary = requisitionService.getRequisitionSummaryByStatus();
@@ -194,7 +194,7 @@ public class RequisitionController {
     @GetMapping("/count/status/{status}")
     @Operation(summary = "Count requisitions by status")
     @ResponseStatus(HttpStatus.OK)
-    @PreAuthorize("hasAuthority('READ_PRIVILEGE')")
+    @PreAuthorize("hasAuthority('READ_PRIVILEGE') and hasAnyRole('ADMIN', 'PALEGAL', 'COMPANYSECRETARY', 'MANAGINGDIRECTOR', 'PROCUREMENTMANAGER', 'FINANCEDIRECTOR', 'TECHNICALDIRECTOR', 'COMMERCIALDIRECTOR', 'BUSINESSMANAGER', 'HOD', 'USER')")
     public ResponseEntity<Long> countRequisitionsByStatus(@PathVariable RequisitionStatus status) {
         log.info("Counting requisitions with status: {}", status);
         Long count = requisitionService.countRequisitionsByStatus(status);
@@ -208,7 +208,7 @@ public class RequisitionController {
             consumes = MediaType.MULTIPART_FORM_DATA_VALUE
     )
     @ResponseStatus(HttpStatus.OK)
-    @PreAuthorize("hasAuthority('READ_PRIVILEGE')")
+    @PreAuthorize("hasAuthority('READ_PRIVILEGE') and hasAnyRole('ADMIN', 'PALEGAL', 'COMPANYSECRETARY', 'MANAGINGDIRECTOR', 'PROCUREMENTMANAGER', 'FINANCEDIRECTOR', 'TECHNICALDIRECTOR', 'COMMERCIALDIRECTOR', 'BUSINESSMANAGER', 'HOD', 'USER')")
     public ResponseEntity<String> uploadFiles(
             @PathVariable Long id,
             @RequestPart("files") MultipartFile[] files
