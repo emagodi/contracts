@@ -273,6 +273,7 @@ public class AuthenticationController {
                     .id(user.getId())
                     .firstname(user.getFirstname())
                     .lastname(user.getLastname())
+                    .phone(user.getPhone())
                     .temporaryPassword(user.isTemporaryPassword())
                     .message("User Authenticated Successfully")
                     .refreshToken(refreshToken)

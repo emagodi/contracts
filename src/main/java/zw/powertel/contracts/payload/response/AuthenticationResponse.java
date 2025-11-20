@@ -24,6 +24,8 @@ public class AuthenticationResponse {
 
     private String email;
 
+    private String phone;
+
     private List<String> roles;
 
     private boolean temporaryPassword;

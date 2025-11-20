@@ -37,6 +37,8 @@ public class User implements UserDetails { // make our app User a spring securit
 
     private String password;
 
+    private String phone;
+
     @Enumerated(EnumType.STRING)
     private Role role;
 

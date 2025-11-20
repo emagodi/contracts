@@ -1,12 +1,16 @@
 package zw.powertel.contracts.service;
 
 import org.springframework.web.multipart.MultipartFile;
+import zw.powertel.contracts.entities.Requisition;
 import zw.powertel.contracts.enums.RequisitionStatus;
 import zw.powertel.contracts.payload.request.ApprovalRequest;
 import zw.powertel.contracts.payload.request.RequisitionRequest;
 import zw.powertel.contracts.payload.response.ApprovalResponse;
 import zw.powertel.contracts.payload.response.RequisitionResponse;
+import zw.powertel.contracts.payload.response.StatusSummaryResponse;
 
+import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Map;
 
@@ -26,6 +30,11 @@ public interface RequisitionService {
     // ------------------------ FILTERS ------------------------
     List<RequisitionResponse> getRequisitionsByCreator(String createdBy);
     List<RequisitionResponse> getRequisitionsByStatus(RequisitionStatus status);
+    public List<RequisitionResponse> getRequisitionsWithoutApproval();
+    List<RequisitionResponse> getRequisitionsByFilters(RequisitionStatus status, String createdBy, LocalDateTime startDate, LocalDateTime endDate);
+
+    // Summary of requisitions by status, creator, and date range
+    List<StatusSummaryResponse> getStatusSummary(String createdBy, LocalDateTime startDate, LocalDateTime endDate);
 
     // ------------------------ CONTRACTS ------------------------
     List<RequisitionResponse> getContractsDueForRenewal();

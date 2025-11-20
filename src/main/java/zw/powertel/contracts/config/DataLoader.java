@@ -45,9 +45,17 @@ public class DataLoader implements CommandLineRunner {
     public void run(String... args) throws Exception {
         // Create super admin user
         createSuperAdmin();
+        createMd();
+        createBusiness();
+        createCommercial();
+        createTechnical();
+        createFinance();
+        createProcurement();
+        createSecretary();
+        createHod();
 
         // Load 200 requisitions with approvals
-        //  loadRequisitions();
+         // loadRequisitions();
 
     }
 
@@ -65,6 +73,142 @@ public class DataLoader implements CommandLineRunner {
             System.out.println("Default ADMIN user created.");
         } else {
             System.out.println("ADMIN user already exists.");
+        }
+    }
+
+    private void createSecretary() {
+        if (!userRepository.findByEmail("secretary@powertel.co.zw").isPresent()) {
+            User secretary = new User();
+            secretary.setFirstname("Secretary");
+            secretary.setLastname("Secretary");
+            secretary.setEmail("secretary@powertel.co.zw");
+            secretary.setPassword(passwordEncoder.encode("Password@123"));
+            secretary.setRole(Role.COMPANYSECRETARY);
+            secretary.setTemporaryPassword(false);
+
+            userRepository.save(secretary);
+            System.out.println("Secretary user created.");
+        } else {
+            System.out.println("Secretary user already exists.");
+        }
+    }
+
+    private void createProcurement() {
+        if (!userRepository.findByEmail("procurement@powertel.co.zw").isPresent()) {
+            User procurement = new User();
+            procurement.setFirstname("Procurement");
+            procurement.setLastname("Procurement");
+            procurement.setEmail("procurement@powertel.co.zw");
+            procurement.setPassword(passwordEncoder.encode("Password@123"));
+            procurement.setRole(Role.PROCUREMENTMANAGER);
+            procurement.setTemporaryPassword(false);
+
+            userRepository.save(procurement);
+            System.out.println("Procurement user created.");
+        } else {
+            System.out.println("Procurement user already exists.");
+        }
+    }
+
+    private void createFinance() {
+        if (!userRepository.findByEmail("finance@powertel.co.zw").isPresent()) {
+            User finance = new User();
+            finance.setFirstname("Finance");
+            finance.setLastname("Finance");
+            finance.setEmail("finance@powertel.co.zw");
+            finance.setPassword(passwordEncoder.encode("Password@123"));
+            finance.setRole(Role.FINANCEDIRECTOR);
+            finance.setTemporaryPassword(false);
+
+            userRepository.save(finance);
+            System.out.println("Finance user created.");
+        } else {
+            System.out.println("Finance user already exists.");
+        }
+    }
+
+    private void createTechnical() {
+        if (!userRepository.findByEmail("technical@powertel.co.zw").isPresent()) {
+            User technical = new User();
+            technical.setFirstname("Technical");
+            technical.setLastname("Technical");
+            technical.setEmail("technical@powertel.co.zw");
+            technical.setPassword(passwordEncoder.encode("Password@123"));
+            technical.setRole(Role.TECHNICALDIRECTOR);
+            technical.setTemporaryPassword(false);
+
+            userRepository.save(technical);
+            System.out.println("Technical user created.");
+        } else {
+            System.out.println("Technical user already exists.");
+        }
+    }
+
+    private void createCommercial() {
+        if (!userRepository.findByEmail("commercial@powertel.co.zw").isPresent()) {
+            User commercial = new User();
+            commercial.setFirstname("Commercial");
+            commercial.setLastname("Commercial");
+            commercial.setEmail("commercial@powertel.co.zw");
+            commercial.setPassword(passwordEncoder.encode("Password@123"));
+            commercial.setRole(Role.COMMERCIALDIRECTOR);
+            commercial.setTemporaryPassword(false);
+
+            userRepository.save(commercial);
+            System.out.println("Commercial user created.");
+        } else {
+            System.out.println("Commercial user already exists.");
+        }
+    }
+
+    private void createBusiness() {
+        if (!userRepository.findByEmail("business@powertel.co.zw").isPresent()) {
+            User business = new User();
+            business.setFirstname("Business");
+            business.setLastname("Business");
+            business.setEmail("business@powertel.co.zw");
+            business.setPassword(passwordEncoder.encode("Password@123"));
+            business.setRole(Role.BUSINESSMANAGER);
+            business.setTemporaryPassword(false);
+
+            userRepository.save(business);
+            System.out.println("Business user created.");
+        } else {
+            System.out.println("Business user already exists.");
+        }
+    }
+
+    private void createHod() {
+        if (!userRepository.findByEmail("hod@powertel.co.zw").isPresent()) {
+            User hod = new User();
+            hod.setFirstname("Hod");
+            hod.setLastname("Hod");
+            hod.setEmail("hod@powertel.co.zw");
+            hod.setPassword(passwordEncoder.encode("Password@123"));
+            hod.setRole(Role.HOD);
+            hod.setTemporaryPassword(false);
+
+            userRepository.save(hod);
+            System.out.println("HOD user created.");
+        } else {
+            System.out.println("HOD user already exists.");
+        }
+    }
+
+    private void createMd() {
+        if (!userRepository.findByEmail("md@powertel.co.zw").isPresent()) {
+            User mod = new User();
+            mod.setFirstname("Md");
+            mod.setLastname("Md");
+            mod.setEmail("md@powertel.co.zw");
+            mod.setPassword(passwordEncoder.encode("Password@123"));
+            mod.setRole(Role.MANAGINGDIRECTOR);
+            mod.setTemporaryPassword(false);
+
+            userRepository.save(mod);
+            System.out.println("MD user created.");
+        } else {
+            System.out.println("MD user already exists.");
         }
     }
 

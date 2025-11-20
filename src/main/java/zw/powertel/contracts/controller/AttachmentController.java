@@ -26,7 +26,7 @@ public class AttachmentController {
     @GetMapping("/requisition/{reqId}")
     @Operation(summary = "Paginated list of attachments for a requisition")
     @ResponseStatus(HttpStatus.OK)
-    @PreAuthorize("hasAuthority('READ_PRIVILEGE') and hasAnyRole('USER','ADMIN', 'PALEGAL', 'TECHNICALDIRECTOR', 'FINANCEDIRECTOR', 'COMMERCIALDIRECTOR', 'PROCUREMENTMANAGER')")
+    @PreAuthorize("hasAuthority('READ_PRIVILEGE') and hasAnyRole('ADMIN', 'PALEGAL', 'COMPANYSECRETARY', 'MANAGINGDIRECTOR', 'PROCUREMENTMANAGER', 'FINANCEDIRECTOR', 'TECHNICALDIRECTOR', 'COMMERCIALDIRECTOR', 'BUSINESSMANAGER', 'HOD', 'USER')")
     public ResponseEntity<Page<AttachmentResponse>> list(
             @PathVariable Long reqId,
             @RequestParam(defaultValue = "0") int page,
@@ -39,7 +39,7 @@ public class AttachmentController {
     @PatchMapping("/{id}/rename")
     @Operation(summary = "Rename attachment (version increment)")
     @ResponseStatus(HttpStatus.OK)
-    @PreAuthorize("hasAuthority('READ_PRIVILEGE') and hasAnyRole('USER','ADMIN', 'PALEGAL', 'TECHNICALDIRECTOR', 'FINANCEDIRECTOR', 'COMMERCIALDIRECTOR', 'PROCUREMENTMANAGER')")
+    @PreAuthorize("hasAuthority('READ_PRIVILEGE') and hasAnyRole('ADMIN', 'PALEGAL', 'COMPANYSECRETARY', 'MANAGINGDIRECTOR', 'PROCUREMENTMANAGER', 'FINANCEDIRECTOR', 'TECHNICALDIRECTOR', 'COMMERCIALDIRECTOR', 'BUSINESSMANAGER', 'HOD', 'USER')")
     public ResponseEntity<AttachmentResponse> rename(
             @PathVariable Long id,
             @RequestParam String newName
@@ -51,7 +51,7 @@ public class AttachmentController {
     @GetMapping("/{id}/download")
     @Operation(summary = "Download file (forces browser download")
     @ResponseStatus(HttpStatus.OK)
-    @PreAuthorize("hasAuthority('READ_PRIVILEGE') and hasAnyRole('USER','ADMIN', 'PALEGAL', 'TECHNICALDIRECTOR', 'FINANCEDIRECTOR', 'COMMERCIALDIRECTOR', 'PROCUREMENTMANAGER')")
+    @PreAuthorize("hasAuthority('READ_PRIVILEGE') and hasAnyRole('ADMIN', 'PALEGAL', 'COMPANYSECRETARY', 'MANAGINGDIRECTOR', 'PROCUREMENTMANAGER', 'FINANCEDIRECTOR', 'TECHNICALDIRECTOR', 'COMMERCIALDIRECTOR', 'BUSINESSMANAGER', 'HOD', 'USER')")
     public ResponseEntity<Resource> download(@PathVariable Long id) {
         Resource resource = attachmentService.download(id);
 
@@ -66,7 +66,7 @@ public class AttachmentController {
     @GetMapping("/{id}/view")
     @Operation(summary = "View file inline (browser preview")
     @ResponseStatus(HttpStatus.OK)
-    @PreAuthorize("hasAuthority('READ_PRIVILEGE') and hasAnyRole('USER','ADMIN', 'PALEGAL', 'TECHNICALDIRECTOR', 'FINANCEDIRECTOR', 'COMMERCIALDIRECTOR', 'PROCUREMENTMANAGER')")
+    @PreAuthorize("hasAuthority('READ_PRIVILEGE') and hasAnyRole('ADMIN', 'PALEGAL', 'COMPANYSECRETARY', 'MANAGINGDIRECTOR', 'PROCUREMENTMANAGER', 'FINANCEDIRECTOR', 'TECHNICALDIRECTOR', 'COMMERCIALDIRECTOR', 'BUSINESSMANAGER', 'HOD', 'USER')")
     public ResponseEntity<Resource> view(@PathVariable Long id) {
         Resource resource = attachmentService.view(id);
 
@@ -81,7 +81,7 @@ public class AttachmentController {
     @DeleteMapping("/{id}")
     @Operation(summary = "Delete attachment (DB + physical file")
     @ResponseStatus(HttpStatus.OK)
-    @PreAuthorize("hasAuthority('READ_PRIVILEGE') and hasAnyRole('USER','ADMIN', 'PALEGAL', 'TECHNICALDIRECTOR', 'FINANCEDIRECTOR', 'COMMERCIALDIRECTOR', 'PROCUREMENTMANAGER')")
+    @PreAuthorize("hasAuthority('READ_PRIVILEGE') and hasAnyRole('ADMIN', 'PALEGAL', 'COMPANYSECRETARY', 'MANAGINGDIRECTOR', 'PROCUREMENTMANAGER', 'FINANCEDIRECTOR', 'TECHNICALDIRECTOR', 'COMMERCIALDIRECTOR', 'BUSINESSMANAGER', 'HOD', 'USER')")
     public ResponseEntity<String> delete(@PathVariable Long id) {
         return ResponseEntity.ok(attachmentService.delete(id));
     }

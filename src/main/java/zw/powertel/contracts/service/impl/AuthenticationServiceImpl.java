@@ -22,6 +22,8 @@ import zw.powertel.contracts.service.AuthenticationService;
 import zw.powertel.contracts.service.EmailService;
 import zw.powertel.contracts.service.JwtService;
 import zw.powertel.contracts.service.RefreshTokenService;
+import zw.powertel.contracts.service.impl.NotificationService;
+
 
 import java.security.SecureRandom;
 import java.time.LocalDateTime;
@@ -39,6 +41,9 @@ public class AuthenticationServiceImpl implements AuthenticationService {
     private final AuthenticationManager authenticationManager;
     private final RefreshTokenService refreshTokenService;
     private final EmailService emailService;
+    private final NotificationService notificationService;
+
+
 
     @Override
     public AuthenticationResponse register(RegisterRequest request) {
@@ -49,6 +54,7 @@ public class AuthenticationServiceImpl implements AuthenticationService {
                 .lastname(request.getLastname())
                 .email(request.getEmail())
                 .password(passwordEncoder.encode(generatedPassword))
+                .phone(request.getPhone())
                 .role(request.getRole())
                 .temporaryPassword(true)
                 .build();
@@ -60,6 +66,8 @@ public class AuthenticationServiceImpl implements AuthenticationService {
         user.setOtp(otp);
         user.setOtpExpiry(LocalDateTime.now().plusMinutes(5));
         userRepository.save(user);
+
+        notificationService.sendOtpSms(user.getPhone(), otp);
 
        // emailService.sendSimpleMessage(new MailBody(user.getEmail(), "Your OTP Code", "Your OTP code is: " + otp));
        // emailService.sendSimpleMessage(new MailBody(user.getEmail(), "Account Created", "Your password: " + generatedPassword));
@@ -85,11 +93,12 @@ public class AuthenticationServiceImpl implements AuthenticationService {
                 .firstname(user.getFirstname())
                 .lastname(user.getLastname())
                 .password(generatedPassword)
+                .phone(user.getPhone())
                 .refreshToken(refreshToken.getToken())
                 .roles(roles)
                 .temporaryPassword(user.isTemporaryPassword())
                 .tokenType("BEARER")
-                .message("User created successfully. An OTP has been sent to your email.")
+                .message("User created successfully. An OTP has been sent to your email and or phone number.")
                 .build();
     }
 
@@ -134,6 +143,7 @@ public class AuthenticationServiceImpl implements AuthenticationService {
                     .id(user.getId())
                     .firstname(user.getFirstname())
                     .lastname(user.getLastname())
+                    .password(user.getPassword())
                     .temporaryPassword(true)
                     .refreshToken(null)
                     .message("Please change your temporary password.")
@@ -145,6 +155,8 @@ public class AuthenticationServiceImpl implements AuthenticationService {
         user.setOtpExpiry(LocalDateTime.now().plusMinutes(5));
         userRepository.save(user);
 
+        notificationService.sendOtpSms(user.getPhone(), otp);
+
       //  emailService.sendSimpleMessage(new MailBody(user.getEmail(), "Your OTP Code", "Your OTP code is: " + otp));
 
         return AuthenticationResponse.builder()
@@ -154,6 +166,7 @@ public class AuthenticationServiceImpl implements AuthenticationService {
                 .id(user.getId())
                 .firstname(user.getFirstname())
                 .lastname(user.getLastname())
+                .password(user.getPassword())
                 .temporaryPassword(false)
                 .refreshToken(null)
                 .message("An OTP has been sent to your email. Please enter it to proceed.")

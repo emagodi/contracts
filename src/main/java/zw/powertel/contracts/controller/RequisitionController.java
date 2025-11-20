@@ -15,8 +15,11 @@ import zw.powertel.contracts.payload.request.ApprovalRequest;
 import zw.powertel.contracts.payload.request.RequisitionRequest;
 import zw.powertel.contracts.payload.response.ApprovalResponse;
 import zw.powertel.contracts.payload.response.RequisitionResponse;
+import zw.powertel.contracts.payload.response.StatusSummaryResponse;
 import zw.powertel.contracts.service.RequisitionService;
 
+import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Map;
 
@@ -134,6 +137,38 @@ public class RequisitionController {
         return ResponseEntity.ok(response);
     }
 
+
+    @GetMapping("/filter")
+    @Operation(summary = "Get requisitions by status, creator, and date range")
+    @ResponseStatus(HttpStatus.OK)
+    @PreAuthorize("hasAuthority('READ_PRIVILEGE') and hasAnyRole('ADMIN', 'PALEGAL', 'COMPANYSECRETARY', 'MANAGINGDIRECTOR', 'PROCUREMENTMANAGER', 'FINANCEDIRECTOR', 'TECHNICALDIRECTOR', 'COMMERCIALDIRECTOR', 'BUSINESSMANAGER', 'HOD', 'USER')")
+    public ResponseEntity<List<RequisitionResponse>> getRequisitionsByFilters(
+            @RequestParam RequisitionStatus status,
+            @RequestParam String createdBy,
+            @RequestParam LocalDateTime startDate,  // Now using LocalDateTime
+            @RequestParam LocalDateTime endDate) {  // Now using LocalDateTime
+
+        log.info("Request to fetch requisitions by filters: status = {}, createdBy = {}, from date = {}, to date = {}", status, createdBy, startDate, endDate);
+        List<RequisitionResponse> responses = requisitionService.getRequisitionsByFilters(status, createdBy, startDate, endDate);
+        log.info("Found {} requisitions matching filters", responses.size());
+        return ResponseEntity.ok(responses);
+    }
+
+    @GetMapping("/status-summary")
+    @Operation(summary = "Get requisition status summary for a creator and date range")
+    @ResponseStatus(HttpStatus.OK)
+    @PreAuthorize("hasAuthority('READ_PRIVILEGE') and hasAnyRole('ADMIN', 'PALEGAL', 'COMPANYSECRETARY', 'MANAGINGDIRECTOR', 'PROCUREMENTMANAGER', 'FINANCEDIRECTOR', 'TECHNICALDIRECTOR', 'COMMERCIALDIRECTOR', 'BUSINESSMANAGER', 'HOD', 'USER')")
+    public ResponseEntity<List<StatusSummaryResponse>> getStatusSummary(
+            @RequestParam String createdBy,
+            @RequestParam LocalDateTime startDate,
+            @RequestParam LocalDateTime endDate) {
+
+        log.info("Request to fetch status summary for creator: {}, from date: {} to date: {}", createdBy, startDate, endDate);
+        List<StatusSummaryResponse> summaries = requisitionService.getStatusSummary(createdBy, startDate, endDate);
+        return ResponseEntity.ok(summaries);
+    }
+
+
     // ------------------------ CONTRACTS ------------------------
     @GetMapping("/contracts-expiry")
     @Operation(summary = "Get due contracts for renewal")
@@ -217,5 +252,16 @@ public class RequisitionController {
         String uploadedFiles = requisitionService.uploadFiles(id, files);
         log.info("Uploaded files: {}", uploadedFiles);
         return ResponseEntity.ok("✅ Uploaded: " + uploadedFiles);
+    }
+
+    @GetMapping("/without-approval")
+    @Operation(summary = "List requisitions without approval")
+    @ResponseStatus(HttpStatus.OK)
+    @PreAuthorize("hasAuthority('READ_PRIVILEGE') and hasAnyRole('ADMIN', 'PALEGAL', 'COMPANYSECRETARY', 'MANAGINGDIRECTOR', 'PROCUREMENTMANAGER', 'FINANCEDIRECTOR', 'TECHNICALDIRECTOR', 'COMMERCIALDIRECTOR', 'BUSINESSMANAGER', 'HOD', 'USER')")
+    public ResponseEntity<List<RequisitionResponse>> getRequisitionsWithoutApproval() {
+        log.info("Fetching requisitions without approval");
+        List<RequisitionResponse> requisitions = requisitionService.getRequisitionsWithoutApproval();
+        log.info("Found {} requisitions without approval", requisitions.size());
+        return ResponseEntity.ok(requisitions);
     }
 }

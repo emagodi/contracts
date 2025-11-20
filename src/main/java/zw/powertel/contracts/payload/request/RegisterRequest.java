@@ -27,6 +27,8 @@ public class RegisterRequest {
     @Email(message = "email format is not valid")
     private String email;
 
+    private String phone;
+
     @NotNull
     private Role role;
 

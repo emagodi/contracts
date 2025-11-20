@@ -7,6 +7,8 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.BeanWrapper;
 import org.springframework.beans.BeanWrapperImpl;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
@@ -24,6 +26,7 @@ import zw.powertel.contracts.payload.request.ApprovalRequest;
 import zw.powertel.contracts.payload.request.RequisitionRequest;
 import zw.powertel.contracts.payload.response.ApprovalResponse;
 import zw.powertel.contracts.payload.response.RequisitionResponse;
+import zw.powertel.contracts.payload.response.StatusSummaryResponse;
 import zw.powertel.contracts.repository.ApprovalRepository;
 import zw.powertel.contracts.repository.RequisitionRepository;
 import zw.powertel.contracts.service.RequisitionService;
@@ -35,6 +38,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.util.*;
 import java.util.stream.Collectors;
 
@@ -284,10 +288,21 @@ public class RequisitionServiceImpl implements RequisitionService {
                 Files.copy(file.getInputStream(), path);
                 log.info("Saved file {} at {}", file.getOriginalFilename(), path);
 
+
+                Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+                User loggedInUser = (User) authentication.getPrincipal();
+                String email = loggedInUser.getEmail();
+                log.info("Setting createdBy and updatedBy to logged-in user: {}", email);
+
+
                 Attachment attachment = new Attachment();
                 attachment.setFileName(file.getOriginalFilename());
                 attachment.setFilePath(path.toString());
                 attachment.setFileType(file.getContentType());
+
+                attachment.setCreatedBy(email);
+                attachment.setUpdatedBy(email);
+
                 requisition.addAttachment(attachment);
 
                 uploadedFiles.append(file.getOriginalFilename()).append(", ");
@@ -301,6 +316,51 @@ public class RequisitionServiceImpl implements RequisitionService {
         log.info("Uploaded files for requisition ID: {}", requisitionId);
         return uploadedFiles.toString();
     }
+
+    @Override
+    public List<RequisitionResponse> getRequisitionsWithoutApproval() {
+        log.info("Fetching requisitions with null approval_id");
+        List<Requisition> requisitions = requisitionRepository.findByApprovalIsNullAndStatusApproved();
+
+        if (requisitions.isEmpty()) {
+            log.warn("No requisitions found without approval");
+            throw new NotFoundException("No requisitions found without approval");
+        }
+
+        log.info("Found {} requisitions without approval", requisitions.size());
+        return requisitions.stream().map(this::mapToResponse).collect(Collectors.toList());
+    }
+
+    @Override
+    public List<RequisitionResponse> getRequisitionsByFilters(RequisitionStatus status, String createdBy, LocalDateTime startDate, LocalDateTime endDate) {
+        log.info("Fetching requisitions with status: {}, created by: {}, from date: {} to date: {}", status, createdBy, startDate, endDate);
+
+        // Adjust the queries to match against LocalDateTime if necessary, otherwise, this assumes your repository method is updated accordingly.
+        List<Requisition> requisitions = requisitionRepository.findByRequisitionStatusAndCreatedByAndCreatedAtBetween(status, createdBy, startDate, endDate);
+
+        if (requisitions.isEmpty()) {
+            log.warn("No requisitions found for filters: status = {}, created by = {}", status, createdBy);
+            throw new NotFoundException("No requisitions found with the specified filters.");
+        }
+
+        return requisitions.stream().map(this::mapToResponse).collect(Collectors.toList());
+    }
+
+
+    @Override
+    public List<StatusSummaryResponse> getStatusSummary(String createdBy, LocalDateTime startDate, LocalDateTime endDate) {
+        List<Object[]> results = requisitionRepository.countByCreatedByAndCreatedAtBetweenGroupByStatus(createdBy, startDate, endDate);
+        List<StatusSummaryResponse> summaries = new ArrayList<>();
+
+        for (Object[] result : results) {
+            RequisitionStatus status = (RequisitionStatus) result[0]; // Assuming the first element is the status
+            Long count = ((Number) result[1]).longValue(); // Assuming the second element is the count
+            summaries.add(new StatusSummaryResponse(status, count));
+        }
+
+        return summaries;
+    }
+
 
     // ------------------------ UTILITIES ------------------------
     private void copyNonNullProperties(Object source, Object target) {
