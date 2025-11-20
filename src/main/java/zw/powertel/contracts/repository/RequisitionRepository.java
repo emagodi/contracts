@@ -2,6 +2,7 @@ package zw.powertel.contracts.repository;
 
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
 import zw.powertel.contracts.entities.Requisition;
 import zw.powertel.contracts.enums.IsRenewable;
 import zw.powertel.contracts.enums.PaymentStatus;
@@ -86,5 +87,18 @@ public interface RequisitionRepository extends JpaRepository<Requisition, Long> 
     WHERE r.approval IS NULL AND r.requisitionStatus = 'COMPANYSECRETARY_APPROVED'
 """)
     List<Requisition> findByApprovalIsNullAndStatusApproved();
+
+
+    @Query("SELECT r FROM Requisition r " +
+            "WHERE r.requisitionStatus = :status " +
+            "AND r.isRenewable = :renewable " +
+            "AND r.endDate BETWEEN :today AND :sevenDays")
+    List<Requisition> findRenewableContractsExpiringSoon(
+            @Param("status") RequisitionStatus status,
+            @Param("renewable") IsRenewable renewable,
+            @Param("today") LocalDate today,
+            @Param("sevenDays") LocalDate sevenDays
+    );
+
 
 }
