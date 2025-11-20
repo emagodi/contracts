@@ -7,7 +7,7 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.userdetails.UserDetails;
-import zw.powertel.contracts.enums.Role;;
+import zw.powertel.contracts.enums.Role;
 
 
 import java.time.LocalDateTime;
