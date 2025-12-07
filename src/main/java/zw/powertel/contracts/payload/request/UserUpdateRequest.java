@@ -35,4 +35,7 @@ public class UserUpdateRequest {
     @NotNull
     private Role role;
 
+    @NotBlank(message = "phone is required")
+    private String phone;
+
 }
