@@ -28,13 +28,6 @@ import zw.powertel.contracts.handlers.ErrorResponse;
                 description = "Contracts Management System API documentation",
                 version = "0.0.1-SNAPSHOT"
         ),
-        servers = {
-                @Server(
-                        description = "Development",
-                        url = "http://localhost:8080"
-
-                )
-        },
         security = {
                 @SecurityRequirement(
                         name = "bearerAuth"

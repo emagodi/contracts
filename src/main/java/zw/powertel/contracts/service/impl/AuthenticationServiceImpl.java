@@ -150,26 +150,25 @@ public class AuthenticationServiceImpl implements AuthenticationService {
                     .build();
         }
 
-        String otp = generateOtp();
-        user.setOtp(otp);
-        user.setOtpExpiry(LocalDateTime.now().plusMinutes(5));
-        userRepository.save(user);
+        String jwt = jwtService.generateToken(user);
+        String refreshToken = refreshTokenService.createRefreshToken(user.getId()).getToken();
 
-        notificationService.sendOtpSms(user.getPhone(), otp);
-
-      //  emailService.sendSimpleMessage(new MailBody(user.getEmail(), "Your OTP Code", "Your OTP code is: " + otp));
+        List<String> roles = user.getRole().getAuthorities()
+                .stream()
+                .map(SimpleGrantedAuthority::getAuthority)
+                .toList();
 
         return AuthenticationResponse.builder()
-                .accessToken(null)
-                .roles(Collections.emptyList())
+                .accessToken(jwt)
+                .roles(roles)
                 .email(user.getEmail())
                 .id(user.getId())
                 .firstname(user.getFirstname())
                 .lastname(user.getLastname())
                 .password(user.getPassword())
                 .temporaryPassword(false)
-                .refreshToken(null)
-                .message("An OTP has been sent to your email. Please enter it to proceed.")
+                .refreshToken(refreshToken)
+                .message("User Authenticated Successfully")
                 .build();
     }
 

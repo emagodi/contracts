@@ -1,0 +1,47 @@
+services:
+  mysql:
+    image: mysql:8.0
+    container_name: contracts-mysql
+    environment:
+      MYSQL_ROOT_PASSWORD: secret
+      MYSQL_DATABASE: ecms
+    ports:
+      - "3307:3306"
+    volumes:
+      - mysql_data:/var/lib/mysql
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: contracts-app
+    depends_on:
+      mysql:
+        condition: service_healthy
+    environment:
+      SPRING_PROFILES_ACTIVE: dev
+      SPRING_DATASOURCE_URL: jdbc:mysql://mysql:3306/ecms
+      SPRING_DATASOURCE_USERNAME: root
+      SPRING_DATASOURCE_PASSWORD: secret
+      FILE_UPLOAD_DIR: /data/uploads/contracts
+      FILE_UPLOAD_DIR_SIGNATURES: /data/uploads/contracts/signatures
+      APPLICATION_SECURITY_JWT_SECRET_KEY: w7rj85o9SnDk1q2W8gHixMfNYaW6mDpcFXH0f1RmZDU=
+      APPLICATION_SECURITY_JWT_EXPIRATION: 18000000
+      APPLICATION_SECURITY_JWT_COOKIE_NAME: jwt-cookie
+      APPLICATION_SECURITY_JWT_REFRESH_TOKEN_EXPIRATION: 1296000000
+      APPLICATION_SECURITY_JWT_REFRESH_TOKEN_COOKIE_NAME: refresh-jwt-cookie
+    ports:
+      - "9090:8080"
+    volumes:
+      - uploads:/data/uploads/contracts
+      - uploads_signatures:/data/uploads/contracts/signatures
+
+volumes:
+  mysql_data:
+  uploads:
+  uploads_signatures:

@@ -1,0 +1,11 @@
+.git
+.idea
+target
+**/target
+**/*.iml
+Dockerfile
+docker-compose.yml
+uploads
+**/uploads
+node_modules
+**/node_modules
