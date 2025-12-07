@@ -57,7 +57,22 @@ public class SignatureServiceImpl implements SignatureService {
                 .orElseThrow(() -> new NotFoundException("Signature not found for email: " + email));
         // Delete old file
         Files.deleteIfExists(Paths.get(existing.getFilePath()));
-        return saveSignature(email, file);
+
+        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+        String currentUserEmail = auth != null ? auth.getName() : "system";
+
+        String fileName = email + "_" + System.currentTimeMillis() + "_" + file.getOriginalFilename();
+        Path path = Paths.get(signatureUploadDir, fileName);
+        Files.copy(file.getInputStream(), path, StandardCopyOption.REPLACE_EXISTING);
+
+        // Overwrite existing entity fields instead of creating a new record
+        existing.setFileName(file.getOriginalFilename());
+        existing.setFilePath(path.toString());
+        existing.setFileType(file.getContentType());
+        existing.setUpdatedBy(currentUserEmail);
+        existing.setUpdatedAt(LocalDateTime.now());
+
+        return signatureRepository.save(existing);
     }
 
     private Signature saveSignature(String email, MultipartFile file) throws IOException {
